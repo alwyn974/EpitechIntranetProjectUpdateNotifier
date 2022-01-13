@@ -1,0 +1,30 @@
+{
+  "name": "EpitechIntranetProjectUpdateNotifier",
+  "version": "1.0.0",
+  "description": "Send notification to discord, when a project file is update",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alwyn974/EpitechIntranetProjectUpdateNotifier.git"
+  },
+  "keywords": [
+    "epitech",
+    "intranet",
+    "discord",
+    "notifier"
+  ],
+  "author": "Alwyn974",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alwyn974/EpitechIntranetProjectUpdateNotifier/issues"
+  },
+  "homepage": "https://github.com/alwyn974/EpitechIntranetProjectUpdateNotifier#readme",
+  "dependencies": {
+    "epitech.js": "^0.1.5",
+    "winston": "^3.4.0",
+    "winston-daily-rotate-file": "^4.5.5"
+  }
+}

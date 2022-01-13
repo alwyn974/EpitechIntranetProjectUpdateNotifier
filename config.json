@@ -1,0 +1,13 @@
+{
+  "autologin": "",
+  "time_between_check": 360000,
+  "projects": {
+    "499906": {
+      "files": [
+        {
+          "date": "date"
+        }
+      ]
+    }
+  }
+}
