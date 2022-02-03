@@ -1,13 +1,8 @@
 {
   "autologin": "",
-  "time_between_check": 360000,
-  "projects": {
-    "499906": {
-      "files": [
-        {
-          "date": "date"
-        }
-      ]
-    }
-  }
+  "interval_of_check": 1800000,
+  "useWebhook": true,
+  "webhook": "",
+  "downloadFile": true,
+  "debug": true
 }

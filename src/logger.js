@@ -1,11 +1,11 @@
 const {createLogger, format, transports, config} = require("winston");
-const {combine, timestamp, simple} = format;
+const {combine} = format;
 const DailyRotateFile = require("winston-daily-rotate-file");
-const pkg = require("./package.json");
+const pkg = require("../package.json");
 
 let dateFormat = () => {
     let date = new Date();
-    return new Date().toISOString().split("T")[0] + " " + new Date().toLocaleTimeString();
+    return date.toISOString().split("T")[0] + " " + date.toLocaleTimeString();
 }
 
 const customFormatter = format.printf((info) => {
@@ -32,7 +32,7 @@ const logger = createLogger({
 })
 
 const error = function (err) {
-    logger.error("Error", `${err.stack || err}`);
+    logger.error("Error %s", err.stack || err);
 }
 
 module.exports = {
