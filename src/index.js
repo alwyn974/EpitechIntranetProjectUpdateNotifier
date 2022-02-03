@@ -182,8 +182,8 @@ const notifier = async () => {
                 let object = getJson(projects, projet.title);
                 for (let file of files) {
                     let savedFile = getJson(object.files, file.title);
-                    if (savedFile.size !== file.size || savedFile.ctime !== savedFile.ctime || savedFile.mtime !== file.mtime) {
-                        logger.info("Project file has been updated. Project [%s] File [%s] Modifier [%s]", project.title, file.title, file.modifier.title);
+                    if (savedFile.size !== file.size || savedFile.ctime !== file.ctime || savedFile.mtime !== file.mtime) {
+                        logger.info("Project file has been updated. Project [%s] File [%s] Modifier [%s]", project.title, file.title, file.modifier?.title);
                         logger.info("Size %s - Old %s | CTime %s - Old %s | MTime %s - Old %s", file.size, savedFile.size, file.ctime, savedFile.ctime, file.mtime, savedFile.mtime);
                         let message = new MessageBuilder()
                             .setTitle("Subject update !")
@@ -201,7 +201,8 @@ const notifier = async () => {
                             await useWebhook(savedFile.path, "sendFile");
                             await downloadFile(`https://intra.epitech.eu${file.fullpath}`, savedFile.path);
                         }
-                    }
+                    } else
+                        logger.info("Project file already exist [%s] [%s] [%s]", project.codemodule, project.title, file.title);
                 }
             } else {
                 projects.push({
