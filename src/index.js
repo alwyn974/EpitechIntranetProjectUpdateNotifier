@@ -103,7 +103,7 @@ const downloadFile = async (url, path) => {
 }
 
 /**
- * Return an array of json object containing project files informations
+ * Return an array of json object containing project files information
  * @param projectFiles the project files
  * @param project the project
  * @returns {Promise<unknown>}
@@ -125,20 +125,6 @@ const retrieveFiles = async (projectFiles, project) => {
         });
     }
     return files;
-}
-
-/**
- * Get the json object matching title
- * @param array the array of json object
- * @param title the title to check
- * @returns <unknown>
- */
-const getJson = (array, title) => {
-    for (let object of array) {
-        if (object.title === title)
-            return object;
-    }
-    return null;
 }
 
 /**
@@ -177,21 +163,21 @@ const notifier = async () => {
                 instance: project.codeinstance,
                 activity: project.codeacti,
             });
-            let files = await retrieveFiles(projectFiles, project);
+
             if (projects.some(json => json.title === projet.title)) {
-                let object = getJson(projects, projet.title);
-                for (let file of files) {
-                    let savedFile = getJson(object.files, file.title);
+                for (let file of projectFiles) {
+                    let savedFile = projects.find(json => json.title === projet.title).files.find(json => json.title === file.title);
                     if (savedFile.size !== file.size || savedFile.ctime !== file.ctime || savedFile.mtime !== file.mtime) {
-                        logger.info("Project file has been updated. Project [%s] File [%s] Modifier [%s]", project.title, file.title, file.modifier?.title);
+                        logger.info("Project file has been updated. Project [%s] File [%s] Modifier [%s]", project.title, file.title, file.modifier.title);
                         logger.info("Size %s - Old %s | CTime %s - Old %s | MTime %s - Old %s", file.size, savedFile.size, file.ctime, savedFile.ctime, file.mtime, savedFile.mtime);
                         let message = new MessageBuilder()
                             .setTitle("Subject update !")
-                            .addField("Project:", file.title)
+                            .addField("Project:", project.title)
                             .addField("Module:", project.codemodule)
-                            .addField("File size:", `New: ${file.size} Old: ${savedFile.size}`)
-                            .addField("Creation Time:", `New ${file.ctime} Old: ${savedFile.ctime}`)
-                            .addField("Modification Time:", `New ${file.mtime} | Old ${savedFile.mtime}`)
+                            .addField("File:", file.title)
+                            .addField("File size:", `**New:** ${file.size} **Old:** ${savedFile.size}`)
+                            .addField("Creation Time:", `**New:** ${file.ctime} **Old:** ${savedFile.ctime}`)
+                            .addField("Modification Time:", `**New:** ${file.mtime} | **Old:** ${savedFile.mtime}`)
                             .addField("Modifier:", file.modifier.title)
                             .setColor(0x00FF00)
                             .setTimestamp()
@@ -201,10 +187,14 @@ const notifier = async () => {
                             await useWebhook(savedFile.path, "sendFile");
                             await downloadFile(`https://intra.epitech.eu${file.fullpath}`, savedFile.path);
                         }
+                        savedFile.size = file.size;
+                        savedFile.ctime = file.ctime;
+                        savedFile.mtime = file.mtime;
                     } else
                         logger.info("Project file already exist [%s] [%s] [%s]", project.codemodule, project.title, file.title);
                 }
             } else {
+                let files = await retrieveFiles(projectFiles, project);
                 projects.push({
                     title: project.title,
                     files: files
