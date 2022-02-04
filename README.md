@@ -6,6 +6,12 @@ A useful nodejs program to send notification on discord when a project file is u
 
 You need to clone/download this project, and then you need to run `npm install`
 
+You can use the `install-service.sh` script to install the project (clone + setup of a service)
+
+```bash
+curl -LO https://raw.githubusercontent.com/alwyn974/EpitechIntranetProjectUpdateNotifier/main/install-service.sh && chmod +x install-service.sh
+```
+
 ## Usage
 
 You need to specify the discord webhook link in the `config.json`.
