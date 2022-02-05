@@ -145,6 +145,11 @@ const notifier = async () => {
                 instance: project.codeinstance,
                 activity: project.codeacti,
             });
+            if (projectFiles.message) {
+                logger.warning("Can't get file of project %s-%s. Error: %s", project.codemodule, project.title, projectFiles.message);
+                continue;
+            }
+
             let files = await retrieveFiles(projectFiles, project);
             projects.push({
                 title: project.title,
@@ -163,6 +168,10 @@ const notifier = async () => {
                 instance: project.codeinstance,
                 activity: project.codeacti,
             });
+            if (projectFiles.message) {
+                logger.warning("Can't get file of project %s-%s. Error: %s", project.codemodule, project.title, projectFiles.message);
+                continue;
+            }
 
             if (projects.some(json => json.title === projet.title)) {
                 for (let file of projectFiles) {
