@@ -12,6 +12,14 @@ You can use the `install-service.sh` script to install the project (clone + setu
 curl -LO https://raw.githubusercontent.com/alwyn974/EpitechIntranetProjectUpdateNotifier/main/install-service.sh && chmod +x install-service.sh
 ```
 
+### Docker
+
+You can use `docker-compose up -d` to start the docker
+
+If you want to see the logs `docker attach epitechintranetprojectupdatenotifier` or run only `docker-compose up`
+
+See the `docker-compose.yml`
+
 ## Usage
 
 You need to specify the discord webhook link in the `config.json`.

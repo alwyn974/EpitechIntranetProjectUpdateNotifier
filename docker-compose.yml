@@ -1,0 +1,8 @@
+version: "3.0"
+services:
+  epitechintranetprojectupdatenotifier:
+    container_name: epitechintranetprojectupdatenotifier
+    image: alwyn974/epitechintranetprojectupdatenotifier:latest
+    restart: always
+    volumes:
+      - ./config.json:/EpitechIntranetProjectUpdateNotifier/config.json
