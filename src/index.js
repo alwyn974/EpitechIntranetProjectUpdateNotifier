@@ -5,6 +5,7 @@ const {RawIntra} = require("epitech.js");
 let config = require("../config.json");
 const {Webhook, MessageBuilder} = require("discord-webhook-node");
 const pkg = require("../package.json");
+const {diffPdf} = require("./diff");
 
 const rl = readLine.createInterface({
     input: process.stdin,
@@ -99,7 +100,10 @@ const downloadFile = async (url, path) => {
         headers: {Accept: "application/octet-stream", "Content-Type": "application/octet-stream"},
         responseType: "stream"
     });
-    response.data.pipe(fs.createWriteStream(path));
+    await new Promise((resolve, reject) => {
+        response.data.pipe(fs.createWriteStream(path)).on("finish", resolve).on("error", reject);
+    });
+    logger.info("File downloaded %s", path);
 }
 
 /**
@@ -128,37 +132,81 @@ const retrieveFiles = async (projectFiles, project) => {
 }
 
 /**
+ * Setup project.json
+ * @param dashboard the dashboard
+ * @returns {Promise<void>}
+ */
+const setupProjectJson = async (dashboard) => {
+    logger.info("projects.json doesn't exist, creating it");
+    let projects = [];
+    for (let projet of dashboard.board.projets) {
+        let project = await intraFetcher.getProjectByUrl(projet.title_link);
+        let projectFiles = await intraFetcher.getProjectFiles({
+            scolaryear: project.scolaryear,
+            module: project.codemodule,
+            instance: project.codeinstance,
+            activity: project.codeacti,
+        });
+        if (projectFiles.message) {
+            logger.warning("Can't get file of project %s-%s. Error: %s", project.codemodule, project.title, projectFiles.message);
+            continue;
+        }
+
+        let files = await retrieveFiles(projectFiles, project);
+        projects.push({
+            title: project.title,
+            files: files
+        });
+        await writeInFile("./projects.json", projects);
+        logger.info("Saving files of project: %s - %s", project.codemodule, project.title);
+    }
+}
+
+/**
+ *
+ * @param savedFile
+ * @param file
+ * @param project
+ * @returns {Promise<void>}
+ */
+const checkDiffWithPdf = async (savedFile, file, project) => {
+    let oldPath = savedFile.path.replace(".pdf", ".old.pdf");
+    fs.renameSync(savedFile.path, oldPath);
+    await downloadFile(`https://intra.epitech.eu${file.fullpath}`, savedFile.path);
+    let diffContent = await diffPdf(oldPath, savedFile.path);
+
+    if (diffContent.length === 0) {
+        let message = new MessageBuilder()
+            .setTitle("Diff between subject")
+            .setDescription("No difference between old and new file")
+            .setColor(0x00FF00)
+            .setTimestamp()
+            .setFooter(`${pkg.name} - ${pkg.version}`);
+        await useWebhook(message);
+        logger.info("%s-%s | No difference between old and new file", project.codemodule, file.title);
+    } else if (diffContent.length > 2000) {
+        let diffPath = savedFile.path + ".diff.txt";
+        fs.writeFileSync(diffPath, diffContent);
+        await useWebhook(diffPath, "sendFile");
+        logger.info("%s-%s | Difference of 2k+ characters has been found see the file %s", project.codemodule, file.title, diffPath);
+    } else {
+        await useWebhook("Difference between old and new file:\n```" + diffContent + "```");
+        logger.info("%s-%s | Difference between old and new file:\n%s", project.codemodule, file.title, diffContent);
+    }
+    await useWebhook(oldPath, "sendFile");
+    fs.rmSync(oldPath);
+}
+
+/**
  * Check if files of a project has been modified
  * @returns Promise<void>
  */
 const notifier = async () => {
     if (config.downloadFile && !fs.existsSync("./subjects/")) fs.mkdirSync("./subjects/");
     let dashboard = await intraFetcher.getDashboard();
-    if (!fs.existsSync("./projects.json")) {
-        logger.info("projects.json doesn't exist, creating it");
-        let projects = [];
-        for (let projet of dashboard.board.projets) {
-            let project = await intraFetcher.getProjectByUrl(projet.title_link);
-            let projectFiles = await intraFetcher.getProjectFiles({
-                scolaryear: project.scolaryear,
-                module: project.codemodule,
-                instance: project.codeinstance,
-                activity: project.codeacti,
-            });
-            if (projectFiles.message) {
-                logger.warning("Can't get file of project %s-%s. Error: %s", project.codemodule, project.title, projectFiles.message);
-                continue;
-            }
-
-            let files = await retrieveFiles(projectFiles, project);
-            projects.push({
-                title: project.title,
-                files: files
-            });
-            await writeInFile("./projects.json", projects);
-            logger.info("Saving files of project: %s - %s", project.codemodule, project.title);
-        }
-    } else {
+    if (!fs.existsSync("./projects.json"))
+        await setupProjectJson(dashboard);
+    else {
         let projects = require("../projects.json");
         for (let projet of dashboard.board.projets) {
             let project = await intraFetcher.getProjectByUrl(projet.title_link);
@@ -185,7 +233,7 @@ const notifier = async () => {
                             .addField("Module:", project.codemodule)
                             .addField("File:", file.title)
                             .addField("File size:", (file.size - savedFile.size < 0 ? "File size has been decreased" : "File size has been increased") +
-                                ` by **${Math.abs(file.size - savedFile.size)}**\n**Old:** ${savedFile.size}\n**New:** ${file.size}`)
+                                ` by **${Math.abs(file.size - savedFile.size)} bytes**\n**Old:** ${savedFile.size}\n**New:** ${file.size}`)
                             .addField("Creation Time:", `**Old:** ${savedFile.ctime}\n**New:** ${file.ctime}`)
                             .addField("Modification Time:", `**Old:** ${savedFile.mtime}\n**New:** ${file.mtime}`)
                             .addField("Modifier:", file.modifier.title)
@@ -194,8 +242,15 @@ const notifier = async () => {
                             .setFooter(`${pkg.name} - ${pkg.version}`);
                         await useWebhook(message);
                         if (config.downloadFile) {
-                            await useWebhook(savedFile.path, "sendFile");
-                            await downloadFile(`https://intra.epitech.eu${file.fullpath}`, savedFile.path);
+                            if (!fs.existsSync(savedFile.path)) {
+                                logger.info("File %s-%s was not downloaded before. Downloading...", project.codemodule, file.title);
+                                await downloadFile(`https://intra.epitech.eu${file.fullpath}`, savedFile.path);
+                            } else if (config.diffWithOldPdf && savedFile.path.endsWith(".pdf"))
+                                await checkDiffWithPdf(savedFile, file, project);
+                            else {
+                                await useWebhook(savedFile.path, "sendFile");
+                                await downloadFile(`https://intra.epitech.eu${file.fullpath}`, savedFile.path);
+                            }
                         }
                         savedFile.size = file.size;
                         savedFile.ctime = file.ctime;

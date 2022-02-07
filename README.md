@@ -28,5 +28,8 @@ Then you can use `npm start` to run the program. You will need to provide your E
 
 When you are connected the notifier with check every **30 minutes** (configurable in the `config.json`) if a file is updated on current projects.
 
+### ⚠️ Warning
+
+To use the diff feature, you need to have the `diff` command installed on your system. (already installed on most linux distros, and on the docker)
 
 > :bulb: Don't forget to put a star on the project to support the project

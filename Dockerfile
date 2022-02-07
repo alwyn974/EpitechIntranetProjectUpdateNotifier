@@ -2,7 +2,7 @@ FROM node:12-slim
 
 RUN apt-get update \
     && apt-get upgrade \
-    && apt-get install -y git
+    && apt-get install -y git diffutils
 
 RUN git clone https://github.com/alwyn974/EpitechIntranetProjectUpdateNotifier
 

@@ -4,5 +4,6 @@
   "useWebhook": true,
   "webhook": "",
   "downloadFile": true,
-  "debug": true
+  "debug": true,
+  "diffWithOldPdf": true
 }
