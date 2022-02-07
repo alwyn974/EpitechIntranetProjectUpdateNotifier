@@ -170,8 +170,8 @@ const setupProjectJson = async (dashboard) => {
  * @returns {Promise<void>}
  */
 const checkDiffWithPdf = async (savedFile, file, project) => {
-    logger.info("Checking diff between %s and %s", savedFile.path, file.path);
     let oldPath = savedFile.path.replace(".pdf", ".old.pdf");
+    logger.info("Checking diff between %s and %s", savedFile.path, oldPath);
     fs.renameSync(savedFile.path, oldPath);
     await downloadFile(`https://intra.epitech.eu${file.fullpath}`, savedFile.path);
     let diffContent = await diffPdf(oldPath, savedFile.path);
