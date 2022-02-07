@@ -69,7 +69,8 @@ const checkAutoLogin = async (autologin) => {
         process.exit(1);
     }
     intraFetcher = new RawIntra({
-        autologin: autologin
+        autologin: autologin,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     })
 
     let dashboard = await intraFetcher.getDashboard(); //simple request to see if autologin link is working
