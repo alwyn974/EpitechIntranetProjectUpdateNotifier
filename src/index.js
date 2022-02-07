@@ -184,9 +184,10 @@ const notifier = async () => {
                             .addField("Project:", project.title)
                             .addField("Module:", project.codemodule)
                             .addField("File:", file.title)
-                            .addField("File size:", `**New:** ${file.size} **Old:** ${savedFile.size}`)
-                            .addField("Creation Time:", `**New:** ${file.ctime} **Old:** ${savedFile.ctime}`)
-                            .addField("Modification Time:", `**New:** ${file.mtime} | **Old:** ${savedFile.mtime}`)
+                            .addField("File size:", file.size - savedFile.size < 0 ? "File size has been decreased" : "File size has been increased" +
+                                `${Math.abs(file.size - savedFile.size)}\n**Old:** ${savedFile.size} | **New:** ${file.size} `)
+                            .addField("Creation Time:", `**Old:** ${savedFile.ctime} | **New:** ${file.ctime}`)
+                            .addField("Modification Time:", `**Old:** ${savedFile.mtime} | **New:** ${file.mtime}`)
                             .addField("Modifier:", file.modifier.title)
                             .setColor(0x00FF00)
                             .setTimestamp()
