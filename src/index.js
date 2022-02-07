@@ -185,7 +185,7 @@ const notifier = async () => {
                             .addField("Module:", project.codemodule)
                             .addField("File:", file.title)
                             .addField("File size:", (file.size - savedFile.size < 0 ? "File size has been decreased" : "File size has been increased") +
-                                ` by **${Math.abs(file.size - savedFile.size)}**B\n**Old:** ${savedFile.size}B\n**New:** ${file.size}B`)
+                                ` by **${Math.abs(file.size - savedFile.size)}**\n**Old:** ${savedFile.size}\n**New:** ${file.size}`)
                             .addField("Creation Time:", `**Old:** ${savedFile.ctime}\n**New:** ${file.ctime}`)
                             .addField("Modification Time:", `**Old:** ${savedFile.mtime}\n**New:** ${file.mtime}`)
                             .addField("Modifier:", file.modifier.title)
