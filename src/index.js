@@ -163,10 +163,10 @@ const setupProjectJson = async (dashboard) => {
 }
 
 /**
- *
- * @param savedFile
- * @param file
- * @param project
+ * Check the diff between two pdf file
+ * @param savedFile the json containning the file
+ * @param file the json from the intranet
+ * @param project the project from the intranet
  * @returns {Promise<void>}
  */
 const checkDiffWithPdf = async (savedFile, file, project) => {
@@ -190,7 +190,7 @@ const checkDiffWithPdf = async (savedFile, file, project) => {
         await useWebhook(diffPath, "sendFile");
         logger.info("%s-%s | Difference of 2k+ characters has been found see the file %s", project.codemodule, file.title, diffPath);
     } else {
-        await useWebhook("Difference between old and new file:\n```" + diffContent + "```");
+        await useWebhook("**Difference between old and new file:**\n```" + diffContent + "```");
         logger.info("%s-%s | Difference between old and new file:\n%s", project.codemodule, file.title, diffContent);
     }
     await useWebhook(oldPath, "sendFile");
