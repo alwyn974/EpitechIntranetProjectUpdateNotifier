@@ -186,6 +186,8 @@ const checkDiffWithPdf = async (savedFile, file, project) => {
             .setFooter(`${pkg.name} - ${pkg.version}`);
         await useWebhook(message);
         logger.info("%s-%s | No difference between old and new file", project.codemodule, file.title);
+        fs.rmSync(oldPath);
+        return;
     } else if (diffContent.length > 2000) {
         let diffPath = savedFile.path + ".diff.txt";
         fs.writeFileSync(diffPath, diffContent);
@@ -229,13 +231,16 @@ const notifier = async () => {
                     if (savedFile.size !== file.size || savedFile.ctime !== file.ctime || savedFile.mtime !== file.mtime) {
                         logger.info("Project file has been updated. Project [%s] File [%s] Modifier [%s]", project.title, file.title, file.modifier.title);
                         logger.info("Size %s - Old %s | CTime %s - Old %s | MTime %s - Old %s", file.size, savedFile.size, file.ctime, savedFile.ctime, file.mtime, savedFile.mtime);
+                        let subSize = file.size - savedFile.size;
                         let message = new MessageBuilder()
                             .setTitle("Subject update !")
                             .addField("Project:", project.title)
                             .addField("Module:", project.codemodule)
                             .addField("File:", file.title)
-                            .addField("File size:", (file.size - savedFile.size < 0 ? "File size has been decreased" : "File size has been increased") +
-                                ` by **${Math.abs(file.size - savedFile.size)} bytes**\n**Old:** ${savedFile.size}\n**New:** ${file.size}`)
+                            .addField("File size:", (subSize === 0 ? "File size is the same" :
+                                    (subSize < 0 ? "File size has been decreased" : "File size has been increased")
+                                    + ` by **${Math.abs(subSize)} bytes**`) +
+                                `\n**Old:** ${savedFile.size}\n**New:** ${file.size}`)
                             .addField("Creation Time:", `**Old:** ${savedFile.ctime}\n**New:** ${file.ctime}`)
                             .addField("Modification Time:", `**Old:** ${savedFile.mtime}\n**New:** ${file.mtime}`)
                             .addField("Modifier:", file.modifier.title)
