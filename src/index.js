@@ -117,6 +117,7 @@ const retrieveFiles = async (projectFiles, project) => {
     let files = [];
     for (let projectFile of projectFiles) {
         if (config.downloadFile) {
+            project.title = project.title.replace(/\//g, "-");
             if (!fs.existsSync(`./subjects/${project.codemodule}`)) fs.mkdirSync(`./subjects/${project.codemodule}`);
             if (!fs.existsSync(`./subjects/${project.codemodule}/${project.title}`)) fs.mkdirSync(`./subjects/${project.codemodule}/${project.title}`);
             await downloadFile(`https://intra.epitech.eu${projectFile.fullpath}`, `./subjects/${project.codemodule}/${project.title}/${projectFile.title}`);
