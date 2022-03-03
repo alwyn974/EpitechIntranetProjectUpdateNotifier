@@ -226,9 +226,9 @@ const notifier = async () => {
                 continue;
             }
 
-            if (projects.some(json => json.title === projet.title)) {
+            if (projects.some(json => json.title === projet.title.replace(/\//g, "-"))) {
                 for (let file of projectFiles) {
-                    let savedFile = projects.find(json => json.title === projet.title).files.find(json => json.title === file.title);
+                    let savedFile = projects.find(json => json.title === projet.title.replace(/\//g, "-")).files.find(json => json.title === file.title);
                     if (savedFile.size !== file.size || savedFile.ctime !== file.ctime || savedFile.mtime !== file.mtime) {
                         logger.info("Project file has been updated. Project [%s] File [%s] Modifier [%s]", project.title, file.title, file.modifier.title);
                         logger.info("Size %s - Old %s | CTime %s - Old %s | MTime %s - Old %s", file.size, savedFile.size, file.ctime, savedFile.ctime, file.mtime, savedFile.mtime);
