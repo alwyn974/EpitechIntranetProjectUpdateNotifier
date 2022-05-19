@@ -1,6 +1,6 @@
 {
   "name": "EpitechIntranetProjectUpdateNotifier",
-  "version": "1.0.0",
+  "version": "1.0.8",
   "description": "Send notification to discord, when a project file is updated",
   "main": "src/index.js",
   "scripts": {

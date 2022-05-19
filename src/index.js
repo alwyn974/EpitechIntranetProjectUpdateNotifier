@@ -1,7 +1,7 @@
 const readLine = require("readline");
 const {logger, error} = require("./logger");
 const fs = require("fs");
-const {RawIntra} = require("epitech.js");
+const {RawIntra, RawProjectFile} = require("epitech.js");
 let config = require("../config.json");
 const {Webhook, MessageBuilder} = require("discord-webhook-node");
 const pkg = require("../package.json");
@@ -85,7 +85,7 @@ const checkAutoLogin = async (autologin) => {
     logger.info("Link is valid");
     intraFetcher.getRequestProvider().getClient().interceptors.request.use((conf) => {
         if (config.debug)
-            logger.debug("Base Url: %s | Url %s", conf.baseURL, conf.url);
+            logger.info("[URL-DEBUG] %s%s", conf.baseURL, conf.url);
         return conf;
     });
 }
@@ -134,6 +134,53 @@ const retrieveFiles = async (projectFiles, project) => {
 }
 
 /**
+ * Return an array of json object containing project information
+ * @param projet
+ * @returns {Promise<{value: boolean, files: RawProjectFile[], project: RawProject, value: boolean}>}
+ */
+const fetchProjectFiles = async (projet) => {
+    let project = await intraFetcher.getProjectByUrl(projet.title_link);
+    let projectFiles = await intraFetcher.getProjectFiles({
+        scolaryear: project.scolaryear,
+        module: project.codemodule,
+        instance: project.codeinstance,
+        activity: project.codeacti,
+    });
+    if (projectFiles.message) {
+        logger.warning("Can't get file of project %s-%s. Error: %s", project.codemodule, project.title, projectFiles.message);
+        return {value: false, files: projectFiles, project: project};
+    }
+    if (Object.keys(projectFiles).length === 0) {
+        logger.warning("No file for project %s-%s", project.codemodule, project.title);
+        return {value: false, files: projectFiles, project: project};
+    }
+
+    let newProjectFiles = [];
+    for (let projectFile of projectFiles) {
+        if (projectFile.type === 'd') {
+            let newUrl = intraFetcher.solveUrl(projectFile.fullpath);
+            let subProjectFileRequest = await intraFetcher.getRequestProvider().get(newUrl + "/");
+            let subProjectFiles = subProjectFileRequest.data;
+
+            for (let subProjectFile of subProjectFiles) {
+                if (subProjectFile.message) {
+                    logger.warning("Can't get file of project %s-%s. Error: %s", project.codemodule, project.title, subProjectFile.message);
+                    return {value: false, files: newProjectFiles, project: project};
+                }
+                if (Object.keys(subProjectFile).length === 0) {
+                    logger.warning("No file for project %s-%s", project.codemodule, project.title);
+                    return {value: false, files: newProjectFiles, project: project};
+                }
+                newProjectFiles.push(subProjectFile)
+            }
+
+        } else
+            newProjectFiles.push(projectFile)
+    }
+    return {value: true, files: newProjectFiles, project: project};
+}
+
+/**
  * Setup project.json
  * @param dashboard the dashboard
  * @returns {Promise<void>}
@@ -142,25 +189,17 @@ const setupProjectJson = async (dashboard) => {
     logger.info("projects.json doesn't exist, creating it");
     let projects = [];
     for (let projet of dashboard.board.projets) {
-        let project = await intraFetcher.getProjectByUrl(projet.title_link);
-        let projectFiles = await intraFetcher.getProjectFiles({
-            scolaryear: project.scolaryear,
-            module: project.codemodule,
-            instance: project.codeinstance,
-            activity: project.codeacti,
-        });
-        if (projectFiles.message) {
-            logger.warning("Can't get file of project %s-%s. Error: %s", project.codemodule, project.title, projectFiles.message);
+        let projectInformations = await fetchProjectFiles(projet);
+        if (!projectInformations.value)
             continue;
-        }
 
-        let files = await retrieveFiles(projectFiles, project);
+        let files = await retrieveFiles(projectInformations.files, projectInformations.project);
         projects.push({
-            title: project.title,
+            title: projectInformations.project.title,
             files: files
         });
         await writeInFile("./projects.json", projects);
-        logger.info("Saving files of project: %s - %s", project.codemodule, project.title);
+        logger.info("Saving files of project: %s - %s", projectInformations.project.codemodule, projectInformations.project.title);
     }
 }
 
@@ -214,18 +253,12 @@ const notifier = async () => {
     else {
         let projects = require("../projects.json");
         for (let projet of dashboard.board.projets) {
-            let project = await intraFetcher.getProjectByUrl(projet.title_link);
-            let projectFiles = await intraFetcher.getProjectFiles({
-                scolaryear: project.scolaryear,
-                module: project.codemodule,
-                instance: project.codeinstance,
-                activity: project.codeacti,
-            });
-            if (projectFiles.message) {
-                logger.warning("Can't get file of project %s-%s. Error: %s", project.codemodule, project.title, projectFiles.message);
+            let projectInformations = await fetchProjectFiles(projet);
+            if (!projectInformations.value)
                 continue;
-            }
 
+            let project = projectInformations.project;
+            let projectFiles = projectInformations.files;
             if (projects.some(json => json.title === projet.title.replace(/\//g, "-"))) {
                 for (let file of projectFiles) {
                     let savedFile = projects.find(json => json.title === projet.title.replace(/\//g, "-")).files.find(json => json.title === file.title);
