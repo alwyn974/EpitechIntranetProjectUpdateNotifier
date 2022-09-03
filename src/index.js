@@ -1,19 +1,20 @@
-const readLine = require("readline");
 const {logger, error} = require("./logger");
 const fs = require("fs");
-const {RawIntra, RawProjectFile} = require("epitech.js");
+const {RawIntra, RawProjectFile, RawProject} = require("epitech.js");
+const {PuppeteerAuthProvider} = require("@epitech.js/puppeteer-auth-provider")
 let config = require("../config.json");
 const {Webhook, MessageBuilder} = require("discord-webhook-node");
 const pkg = require("../package.json");
 const {diffPdf} = require("./diff");
 
-const rl = readLine.createInterface({
-    input: process.stdin,
-    output: process.stdout
-})
-
 const autologinIntranet = "https://intra.epitech.eu/admin/autolog";
-let intraFetcher = null;
+let intraFetcher = new RawIntra({
+    provider: new PuppeteerAuthProvider({
+        storageFilePath: "./storage.json",
+        verbose: true
+    }),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+});
 const interval = config.interval_of_check || 30 * 60 * 1000;
 let hook = null;
 if (config.useWebhook) {
@@ -57,29 +58,17 @@ const writeInFile = async (path, data) => {
 }
 
 /**
- * Checking if autologin link is valid
- * @param autologin the link
+ * Checking if intranet access is valid
  * @returns {Promise<void>}
  */
-const checkAutoLogin = async (autologin) => {
-    let regex = new RegExp("https://intra.epitech.eu/auth-[a-f0-9]{40}")
-    if (!regex.test(autologin)) {
-        logger.error("Autologin is not valid, please retry with a good autologin link");
-        logger.error("Change it directly in config.json. If you're autologin is already saved");
-        process.exit(1);
-    }
-    intraFetcher = new RawIntra({
-        autologin: autologin,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    })
-
+const checkIntranetAccess = async () => {
     let dashboard = await intraFetcher.getDashboard(); //simple request to see if autologin link is working
     if (!dashboard) {
         logger.error("Can't fetch any data with this autologin link");
         process.exit(1);
     } else if (dashboard.message) {
         logger.error("Error when requesting to https://intra.epitech.eu : [%s]", dashboard.message);
-        logger.error("Update your autologin token. If it's not working please open an issue");
+        logger.error("Update your token. If it's not working please open an issue");
         process.exit(1);
     }
     logger.info("Link is valid");
@@ -97,14 +86,11 @@ const checkAutoLogin = async (autologin) => {
  * @returns {Promise<unknown>}
  */
 const downloadFile = async (url, path) => {
-    let response = await intraFetcher.getRequestProvider().getClient().get(url, {
-        headers: {Accept: "application/octet-stream", "Content-Type": "application/octet-stream"},
-        responseType: "stream"
-    });
-    await new Promise((resolve, reject) => {
-        response.data.pipe(fs.createWriteStream(path)).on("finish", resolve).on("error", reject);
-    });
-    logger.info("File downloaded %s", path);
+    let res = await intraFetcher.downloadFile(path);
+    if (res !== undefined)
+        logger.info("File downloaded %s", path);
+    else
+        logger.error("Error when downloading file %s", path);
 }
 
 /**
@@ -174,8 +160,7 @@ const fetchProjectFiles = async (projet) => {
                 newProjectFiles.push(subProjectFile)
             }
 
-        } else
-            newProjectFiles.push(projectFile)
+        } else newProjectFiles.push(projectFile)
     }
     return {value: true, files: newProjectFiles, project: project};
 }
@@ -190,13 +175,11 @@ const setupProjectJson = async (dashboard) => {
     let projects = [];
     for (let projet of dashboard.board.projets) {
         let projectInformations = await fetchProjectFiles(projet);
-        if (!projectInformations.value)
-            continue;
+        if (!projectInformations.value) continue;
 
         let files = await retrieveFiles(projectInformations.files, projectInformations.project);
         projects.push({
-            title: projectInformations.project.title,
-            files: files
+            title: projectInformations.project.title, files: files
         });
         await writeInFile("./projects.json", projects);
         logger.info("Saving files of project: %s - %s", projectInformations.project.codemodule, projectInformations.project.title);
@@ -248,14 +231,11 @@ const checkDiffWithPdf = async (savedFile, file, project) => {
 const notifier = async () => {
     if (config.downloadFile && !fs.existsSync("./subjects/")) fs.mkdirSync("./subjects/");
     let dashboard = await intraFetcher.getDashboard();
-    if (!fs.existsSync("./projects.json"))
-        await setupProjectJson(dashboard);
-    else {
+    if (!fs.existsSync("./projects.json")) await setupProjectJson(dashboard); else {
         let projects = require("../projects.json");
         for (let projet of dashboard.board.projets) {
             let projectInformations = await fetchProjectFiles(projet);
-            if (!projectInformations.value)
-                continue;
+            if (!projectInformations.value) continue;
 
             let project = projectInformations.project;
             let projectFiles = projectInformations.files;
@@ -271,10 +251,7 @@ const notifier = async () => {
                             .addField("Project:", project.title)
                             .addField("Module:", project.codemodule)
                             .addField("File:", file.title)
-                            .addField("File size:", (subSize === 0 ? "File size is the same" :
-                                    (subSize < 0 ? "File size has been decreased" : "File size has been increased")
-                                    + ` by **${Math.abs(subSize)} bytes**`) +
-                                `\n**Old:** ${savedFile.size}\n**New:** ${file.size}`)
+                            .addField("File size:", (subSize === 0 ? "File size is the same" : (subSize < 0 ? "File size has been decreased" : "File size has been increased") + ` by **${Math.abs(subSize)} bytes**`) + `\n**Old:** ${savedFile.size}\n**New:** ${file.size}`)
                             .addField("Creation Time:", `**Old:** ${savedFile.ctime}\n**New:** ${file.ctime}`)
                             .addField("Modification Time:", `**Old:** ${savedFile.mtime}\n**New:** ${file.mtime}`)
                             .addField("Modifier:", file.modifier.title)
@@ -286,9 +263,7 @@ const notifier = async () => {
                             if (!fs.existsSync(savedFile.path)) {
                                 logger.info("File %s-%s was not downloaded before. Downloading...", project.codemodule, file.title);
                                 await downloadFile(`https://intra.epitech.eu${file.fullpath}`, savedFile.path);
-                            } else if (config.diffWithOldPdf && savedFile.path.endsWith(".pdf"))
-                                await checkDiffWithPdf(savedFile, file, project);
-                            else {
+                            } else if (config.diffWithOldPdf && savedFile.path.endsWith(".pdf")) await checkDiffWithPdf(savedFile, file, project); else {
                                 await useWebhook(savedFile.path, "sendFile");
                                 await downloadFile(`https://intra.epitech.eu${file.fullpath}`, savedFile.path);
                             }
@@ -296,14 +271,12 @@ const notifier = async () => {
                         savedFile.size = file.size;
                         savedFile.ctime = file.ctime;
                         savedFile.mtime = file.mtime;
-                    } else
-                        logger.info("Project file already exist [%s] [%s] [%s]", project.codemodule, project.title, file.title);
+                    } else logger.info("Project file already exist [%s] [%s] [%s]", project.codemodule, project.title, file.title);
                 }
             } else {
                 let files = await retrieveFiles(projectFiles, project);
                 projects.push({
-                    title: project.title,
-                    files: files
+                    title: project.title, files: files
                 });
                 logger.info("New project files added. Project: %s - %s", project.codemodule, project.title);
             }
@@ -331,21 +304,13 @@ const msToTime = (ms) => {
  */
 const main = async () => {
     logger.info("Starting Epitech Intranet Project Update Notifier...")
-    if (config.autologin === "") {
-        await (new Promise((resolve) => {
-            rl.question(`Epitech intranet auto login (${autologinIntranet}): `, async (auto_login) => {
-                await checkAutoLogin(auto_login)
-                logger.info("Set autologin to %s", auto_login)
-                config.autologin = auto_login;
-                rl.close();
-                resolve();
-            });
-        }));
-        await writeInFile(config, "./config.json");
-    } else {
-        logger.info("Checking saved autologin link...");
-        await checkAutoLogin(config.autologin);
+    logger.info("Checking access to intranet...");
+    if (!fs.existsSync("./config.json")) {
+        logger.error("Config file not found. Please create a config.json file.");
+        process.exit(1);
     }
+    await checkIntranetAccess();
+    logger.info("Access to intranet granted.");
     logger.info(`Interval of fetching data is set to ${msToTime(interval)}`)
     await notifier();
     setInterval(async () => {
@@ -360,6 +325,5 @@ main().catch(async (err) => {
         .setDescription(`${err}`)
         .setColor(0xFF0000)
         .setTimestamp()
-        .setFooter(`${pkg.name} - ${pkg.version}`)
-    );
+        .setFooter(`${pkg.name} - ${pkg.version}`));
 });

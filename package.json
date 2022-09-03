@@ -1,6 +1,6 @@
 {
   "name": "EpitechIntranetProjectUpdateNotifier",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Send notification to discord, when a project file is updated",
   "main": "src/index.js",
   "scripts": {
@@ -23,11 +23,13 @@
   },
   "homepage": "https://github.com/alwyn974/EpitechIntranetProjectUpdateNotifier#readme",
   "dependencies": {
+    "@epitech.js/puppeteer-auth-provider": "^0.1.0",
     "discord-webhook-node": "^1.1.8",
-    "epitech.js": "^0.1.7",
+    "epitech.js": "^0.2.0",
     "pdf-parse": "^1.1.1",
-    "winston": "^3.4.0",
-    "winston-daily-rotate-file": "^4.5.5"
+    "puppeteer": "^17.1.0",
+    "winston": "^3.8.1",
+    "winston-daily-rotate-file": "^4.7.1"
   },
   "engines": {
     "node": ">=14.0.0"

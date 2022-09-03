@@ -1,5 +1,4 @@
 {
-  "autologin": "",
   "interval_of_check": 1800000,
   "useWebhook": true,
   "webhook": "",

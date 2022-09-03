@@ -2,9 +2,6 @@
 
 A useful nodejs program to send notification on discord when a project file is updated
 
-⚠️ Warning: DOESN'T WORK ANYMORE ⚠️
-Autologin is not working anymore.
-
 ## Install
 
 You need to clone/download this project, and then you need to run `npm install`
