@@ -234,7 +234,7 @@ const notifier = async () => {
     if (config.downloadFile && !fs.existsSync("./subjects/"))
         fs.mkdirSync("./subjects/");
     let dashboard = await intraFetcher.getDashboard();
-    if (!fs.existsSync("./projects.json"))
+    if (!fs.existsSync("./projects.json") || Object.keys(require("../projects.json")).length === 0)
         await setupProjectJson(dashboard);
     else {
         let projects = require("../projects.json");
