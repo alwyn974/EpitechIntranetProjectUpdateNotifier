@@ -6,3 +6,4 @@ services:
     restart: always
     volumes:
       - ./config.json:/EpitechIntranetProjectUpdateNotifier/config.json
+      - ./storage.json:/EpitechIntranetProjectUpdateNotifier/storage.json

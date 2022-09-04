@@ -24,12 +24,25 @@ See the `docker-compose.yml`
 
 You need to specify the discord webhook link in the `config.json`.
 
-Then you can use `npm start` to run the program. You will need to provide your Epitech intranet autologin link
+Then you can use `npm start` to run the program. <br>
+You will need to connect to your Epitech account. (Graphically, then the refresh will be headless)
+
+#### ⚠️ A file named `storage.json` will be created. Don't share this file with anyone
 
 When you are connected the notifier with check every **30 minutes** (configurable in the `config.json`) if a file is updated on current projects.
 
 ### ⚠️ Warning
 
 To use the diff feature, you need to have the `diff` command installed on your system. (already installed on most linux distros, and on the docker)
+
+## Tips
+
+- You can login into the app (graphically on linux/windows), and then copy the `storage.json` file to your headless machine
+
+## Troubleshooting
+
+- Any error with puppeteer => Check the troubleshooting page of puppeteer
+https://github.com/puppeteer/puppeteer/blob/main/docs/troubleshooting.md
+
 
 > :bulb: Don't forget to put a star on the project to support the project

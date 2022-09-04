@@ -25,7 +25,7 @@
   "dependencies": {
     "@epitech.js/puppeteer-auth-provider": "^0.1.0",
     "discord-webhook-node": "^1.1.8",
-    "epitech.js": "^0.2.0",
+    "epitech.js": "0.2.3",
     "pdf-parse": "^1.1.1",
     "puppeteer": "^17.1.0",
     "winston": "^3.8.1",

@@ -1,6 +1,6 @@
 {
   "interval_of_check": 1800000,
-  "useWebhook": true,
+  "useWebhook": false,
   "webhook": "",
   "downloadFile": true,
   "debug": true,

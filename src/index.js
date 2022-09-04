@@ -7,11 +7,10 @@ const {Webhook, MessageBuilder} = require("discord-webhook-node");
 const pkg = require("../package.json");
 const {diffPdf} = require("./diff");
 
-const autologinIntranet = "https://intra.epitech.eu/admin/autolog";
 let intraFetcher = new RawIntra({
     provider: new PuppeteerAuthProvider({
         storageFilePath: "./storage.json",
-        verbose: true
+        verbose: config.debug
     }),
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
 });
@@ -62,16 +61,14 @@ const writeInFile = async (path, data) => {
  * @returns {Promise<void>}
  */
 const checkIntranetAccess = async () => {
-    let dashboard = await intraFetcher.getDashboard(); //simple request to see if autologin link is working
-    if (!dashboard) {
-        logger.error("Can't fetch any data with this autologin link");
-        process.exit(1);
-    } else if (dashboard.message) {
-        logger.error("Error when requesting to https://intra.epitech.eu : [%s]", dashboard.message);
+    try {
+        await intraFetcher.getDashboard();
+    } catch (e) {
+        logger.error("Error when requesting to https://intra.epitech.eu : [%s]", e.message);
         logger.error("Update your token. If it's not working please open an issue");
         process.exit(1);
     }
-    logger.info("Link is valid");
+
     intraFetcher.getRequestProvider().getClient().interceptors.request.use((conf) => {
         if (config.debug)
             logger.info("[URL-DEBUG] %s%s", conf.baseURL, conf.url);
@@ -126,16 +123,19 @@ const retrieveFiles = async (projectFiles, project) => {
  */
 const fetchProjectFiles = async (projet) => {
     let project = await intraFetcher.getProjectByUrl(projet.title_link);
-    let projectFiles = await intraFetcher.getProjectFiles({
-        scolaryear: project.scolaryear,
-        module: project.codemodule,
-        instance: project.codeinstance,
-        activity: project.codeacti,
-    });
-    if (projectFiles.message) {
-        logger.warning("Can't get file of project %s-%s. Error: %s", project.codemodule, project.title, projectFiles.message);
+    let projectFiles = [];
+    try {
+        projectFiles = await intraFetcher.getProjectFiles({
+            scolaryear: project.scolaryear,
+            module: project.codemodule,
+            instance: project.codeinstance,
+            activity: project.codeacti,
+        });
+    } catch (e) {
+        logger.warning("Can't get file of project %s-%s. Error: %s", project.codemodule, project.title, e.message);
         return {value: false, files: projectFiles, project: project};
     }
+
     if (Object.keys(projectFiles).length === 0) {
         logger.warning("No file for project %s-%s", project.codemodule, project.title);
         return {value: false, files: projectFiles, project: project};
@@ -160,7 +160,8 @@ const fetchProjectFiles = async (projet) => {
                 newProjectFiles.push(subProjectFile)
             }
 
-        } else newProjectFiles.push(projectFile)
+        } else
+            newProjectFiles.push(projectFile)
     }
     return {value: true, files: newProjectFiles, project: project};
 }
@@ -175,7 +176,8 @@ const setupProjectJson = async (dashboard) => {
     let projects = [];
     for (let projet of dashboard.board.projets) {
         let projectInformations = await fetchProjectFiles(projet);
-        if (!projectInformations.value) continue;
+        if (!projectInformations.value)
+            continue;
 
         let files = await retrieveFiles(projectInformations.files, projectInformations.project);
         projects.push({
@@ -229,13 +231,17 @@ const checkDiffWithPdf = async (savedFile, file, project) => {
  * @returns Promise<void>
  */
 const notifier = async () => {
-    if (config.downloadFile && !fs.existsSync("./subjects/")) fs.mkdirSync("./subjects/");
+    if (config.downloadFile && !fs.existsSync("./subjects/"))
+        fs.mkdirSync("./subjects/");
     let dashboard = await intraFetcher.getDashboard();
-    if (!fs.existsSync("./projects.json")) await setupProjectJson(dashboard); else {
+    if (!fs.existsSync("./projects.json"))
+        await setupProjectJson(dashboard);
+    else {
         let projects = require("../projects.json");
         for (let projet of dashboard.board.projets) {
             let projectInformations = await fetchProjectFiles(projet);
-            if (!projectInformations.value) continue;
+            if (!projectInformations.value)
+                continue;
 
             let project = projectInformations.project;
             let projectFiles = projectInformations.files;
